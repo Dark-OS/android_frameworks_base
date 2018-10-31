@@ -4480,6 +4480,11 @@ public final class Settings {
                 BOOLEAN_VALIDATOR;
 
         /**
+         * @hide
+         */	
+	public static final String FULL_GESTURE_NAVBAR = "full_gesture_navbar";
+
+        /**
          * Custom button brightness value for manual mode
          *
          * @hide
