@@ -30,18 +30,24 @@ import android.animation.ValueAnimator;
 import android.annotation.DrawableRes;
 import android.annotation.StyleRes;
 import android.app.StatusBarManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.SystemProperties;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.support.annotation.ColorInt;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -86,7 +92,6 @@ import com.android.systemui.statusbar.policy.DeadZone;
 import com.android.systemui.statusbar.policy.KeyButtonDrawable;
 import com.android.systemui.statusbar.policy.KeyButtonView;
 import com.android.systemui.statusbar.policy.TintedKeyButtonDrawable;
-import com.android.systemui.tuner.TunerService;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -97,7 +102,8 @@ import static com.android.systemui.shared.system.NavigationBarCompat.FLAG_SHOW_O
 import static com.android.systemui.shared.system.NavigationBarCompat.HIT_TARGET_OVERVIEW;
 import static com.android.systemui.shared.system.NavigationBarCompat.HIT_TARGET_ROTATION;
 
-public class NavigationBarView extends FrameLayout implements PluginListener<NavGesture>, PulseObserver, TunerService.Tunable {
+public class NavigationBarView extends FrameLayout implements PluginListener<NavGesture>,
+        PulseObserver {
 
     final static boolean DEBUG = false;
     final static String TAG = "StatusBar/NavBarView";
@@ -178,6 +184,8 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
      private boolean mKeyguardShowing;
 
     private int mRotateBtnStyle = R.style.RotateButtonCCWStart90;
+
+    private SettingsObserver mSettingsObserver;
 
     private class NavTransitionListener implements TransitionListener {
         private boolean mBackTransitioning;
@@ -318,6 +326,8 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
         mButtonDispatchers.put(R.id.menu_container,
                 new ButtonDispatcher(R.id.menu_container));
         mDeadZone = new DeadZone(this);
+
+        mSettingsObserver = new SettingsObserver(new Handler());
     }
 
     public BarTransitions getBarTransitions() {
@@ -1280,17 +1290,18 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
         Dependency.get(PluginManager.class).addPluginListener(this,
                 NavGesture.class, false /* Only one */);
         setUpSwipeUpOnboarding(isQuickStepSwipeUpEnabled());
+        mSettingsObserver.observe();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         Dependency.get(PluginManager.class).removePluginListener(this);
-        Dependency.get(TunerService.class).removeTunable(this);
         if (mGestureHelper != null) {
             mGestureHelper.destroy();
         }
         setUpSwipeUpOnboarding(false);
+        mSettingsObserver.unobserve();
     }
 
     private void setUpSwipeUpOnboarding(boolean connectedToOverviewProxy) {
@@ -1390,6 +1401,34 @@ public class NavigationBarView extends FrameLayout implements PluginListener<Nav
 
         getKeyButtonViewById(R.id.dpad_left).setVisibility(visibility);
         getKeyButtonViewById(R.id.dpad_right).setVisibility(visibility);
+    }
+
+    class SettingsObserver extends ContentObserver {
+        SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContext.getContentResolver().registerContentObserver(
+                  Settings.System.getUriFor(Settings.System.NAVIGATION_BAR_MENU_ARROW_KEYS),
+                  false, this, UserHandle.USER_ALL);
+            update();
+        }
+
+        void unobserve() {
+            mContext.getContentResolver().unregisterContentObserver(this);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            update();
+        }
+
+        public void update() {
+            mShowDpadArrowKeys = Settings.System.getIntForUser(getContext().getContentResolver(),
+                    Settings.System.NAVIGATION_BAR_MENU_ARROW_KEYS, 0, UserHandle.USER_CURRENT) == 1;
+            setNavigationIconHints(mNavigationIconHints);
+        }
     }
 
     private final Consumer<Boolean> mDockedListener = exists -> mHandler.post(() -> {
