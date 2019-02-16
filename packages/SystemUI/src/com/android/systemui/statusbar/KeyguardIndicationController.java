@@ -49,10 +49,12 @@ import com.android.settingslib.Utils;
 import com.android.systemui.Dependency;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
+import com.android.systemui.omni.BatteryBarView;
 import com.android.systemui.statusbar.phone.KeyguardIndicationTextView;
 import com.android.systemui.statusbar.phone.LockIcon;
 import com.android.systemui.statusbar.phone.StatusBarKeyguardViewManager;
 import com.android.systemui.statusbar.policy.UserInfoController;
+import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.wakelock.SettableWakeLock;
 import com.android.systemui.util.wakelock.WakeLock;
 
@@ -67,7 +69,6 @@ import java.util.IllegalFormatConversionException;
 public class KeyguardIndicationController {
 
     private static final String TAG = "KeyguardIndication";
-    private static final boolean DEBUG_CHARGING_SPEED = false;
 
     private static final int MSG_HIDE_TRANSIENT = 1;
     private static final int MSG_CLEAR_FP_MSG = 2;
@@ -108,6 +109,14 @@ public class KeyguardIndicationController {
     private final DevicePolicyManager mDevicePolicyManager;
     private boolean mDozing;
 
+    // omni additions
+    private static final String KEYGUARD_SHOW_WATT_ON_CHARGING = "sysui_keyguard_show_watt";
+    private static final String KEYGUARD_SHOW_BATTERY_BAR = "sysui_keyguard_show_battery_bar";
+    private static final String KEYGUARD_SHOW_BATTERY_BAR_ALWAYS = "sysui_keyguard_show_battery_bar_always";
+
+    private BatteryBarView mBatteryBar;
+
+
     /**
      * Creates a new KeyguardIndicationController and registers callbacks.
      */
@@ -143,6 +152,8 @@ public class KeyguardIndicationController {
 
         mDevicePolicyManager = (DevicePolicyManager) context.getSystemService(
                 Context.DEVICE_POLICY_SERVICE);
+
+        mBatteryBar = indicationArea.findViewById(R.id.battery_bar_view);
 
         updateDisclosure();
     }
@@ -295,8 +306,16 @@ public class KeyguardIndicationController {
         }
 
         if (mVisible) {
+            final boolean showWattOnCharging = Dependency.get(TunerService.class)
+                    .getValue(KEYGUARD_SHOW_WATT_ON_CHARGING, 0) == 1;
+            final boolean showBatteryBar = Dependency.get(TunerService.class)
+                    .getValue(KEYGUARD_SHOW_BATTERY_BAR, 1) == 1;
+            final boolean showBatteryBarAlways = Dependency.get(TunerService.class)
+                    .getValue(KEYGUARD_SHOW_BATTERY_BAR_ALWAYS, 0) == 1;
+
             // Walk down a precedence-ordered list of what indication
             // should be shown based on user or device state
+            mBatteryBar.setVisibility(View.GONE);
             if (mDozing) {
                 mTextView.setTextColor(Color.WHITE);
                 if (!TextUtils.isEmpty(mTransientIndication)) {
@@ -305,10 +324,18 @@ public class KeyguardIndicationController {
                     mTextView.switchIndication(mTransientIndication);
                 } else if (mPowerPluggedIn) {
                     String indication = computePowerIndication();
+                    if (showWattOnCharging) {
+                        indication += ",  " + (mChargingWattage / 1000) + " mW";
+                    }
                     if (animate) {
                         animateText(mTextView, indication);
                     } else {
                         mTextView.switchIndication(indication);
+                    }
+                    if (showBatteryBar) {
+                        mBatteryBar.setVisibility(View.VISIBLE);
+                        mBatteryBar.setBatteryPercent(mBatteryLevel);
+                        mBatteryBar.setBarColor(Color.WHITE);
                     }
                 } else {
                     String percentage = NumberFormat.getPercentInstance()
@@ -334,7 +361,7 @@ public class KeyguardIndicationController {
                 mTextView.setTextColor(mInitialTextColor);
             } else if (mPowerPluggedIn) {
                 String indication = computePowerIndication();
-                if (DEBUG_CHARGING_SPEED) {
+                if (showWattOnCharging) {
                     indication += ",  " + (mChargingWattage / 1000) + " mW";
                 }
                 mTextView.setTextColor(mInitialTextColor);
@@ -342,6 +369,11 @@ public class KeyguardIndicationController {
                     animateText(mTextView, indication);
                 } else {
                     mTextView.switchIndication(indication);
+                }
+                if (showBatteryBar && showBatteryBarAlways) {
+                    mBatteryBar.setVisibility(View.VISIBLE);
+                    mBatteryBar.setBatteryPercent(mBatteryLevel);
+                    mBatteryBar.setBarColor(mInitialTextColor);
                 }
             } else if (!TextUtils.isEmpty(trustManagedIndication)
                     && updateMonitor.getUserTrustIsManaged(userId)
