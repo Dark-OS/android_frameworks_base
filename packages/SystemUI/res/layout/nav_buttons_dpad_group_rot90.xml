@@ -19,7 +19,8 @@
     android:id="@+id/dpad_group"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:clipChildren="false">
+    android:clipChildren="false"
+    android:visibility="gone">
 
         <com.android.systemui.statusbar.policy.KeyButtonView
             android:id="@+id/dpad_left"
@@ -29,7 +30,6 @@
             android:src="@drawable/ic_sysbar_ime_left"
             systemui:keyCode="21"
             systemui:keyRepeat="true"
-            android:visibility="gone"
             android:scaleType="center"
             android:contentDescription="@string/accessibility_dpad_left" />
 
@@ -41,7 +41,6 @@
             android:src="@drawable/ic_sysbar_ime_right"
             systemui:keyCode="22"
             systemui:keyRepeat="true"
-            android:visibility="gone"
             android:scaleType="center"
             android:contentDescription="@string/accessibility_dpad_right" />
 
