@@ -4842,6 +4842,15 @@ public final class Settings {
         public static final String OMNI_DOZE_ON_CHARGE_NOW = "doze_on_charge_now";
 
         /**
+         * Whether to show arrow keys in navigation bar
+         * @hide
+         */
+        public static final String OMNI_NAVIGATION_BAR_ARROW_KEYS = "navigation_bar_menu_arrow_keys";
+
+        private static final Validator OMNI_NAVIGATION_BAR_ARROW_KEYS_VALIDATOR =
+                BOOLEAN_VALIDATOR;
+
+        /**
          * Control music seeking with volume up/down buttons
          *
          * @hide
@@ -4989,6 +4998,7 @@ public final class Settings {
             OMNI_VIBRATE_ON_CALLWAITING,
             OMNI_VIBRATE_ON_DISCONNECT,
             OMNI_DOZE_ON_CHARGE,
+            OMNI_NAVIGATION_BAR_ARROW_KEYS,
             OMNI_VOLUME_BUTTON_MUSIC_CONTROL
         };
 
@@ -5169,6 +5179,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(OMNI_VIBRATE_ON_CALLWAITING);
             PRIVATE_SETTINGS.add(OMNI_VIBRATE_ON_DISCONNECT);
             PRIVATE_SETTINGS.add(OMNI_DOZE_ON_CHARGE);
+            PRIVATE_SETTINGS.add(OMNI_NAVIGATION_BAR_ARROW_KEYS);
             PRIVATE_SETTINGS.add(OMNI_VOLUME_BUTTON_MUSIC_CONTROL);
         }
 
@@ -5370,6 +5381,8 @@ public final class Settings {
                     OMNI_VIBRATE_ON_DISCONNECT_VALIDATOR);
             VALIDATORS.put(OMNI_DOZE_ON_CHARGE,
                     OMNI_DOZE_ON_CHARGE_VALIDATOR);
+            VALIDATORS.put(OMNI_NAVIGATION_BAR_ARROW_KEYS,
+                    OMNI_NAVIGATION_BAR_ARROW_KEYS_VALIDATOR);
             VALIDATORS.put(OMNI_VOLUME_BUTTON_MUSIC_CONTROL,
                     OMNI_VOLUME_BUTTON_MUSIC_CONTROL_VALIDATOR);
         }
