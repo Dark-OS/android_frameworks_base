@@ -113,11 +113,6 @@ public class Utils {
         return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH);
     }
 
-    // Check to see if device supports an alterative ambient display package
-    public static boolean hasAltAmbientDisplay(Context context) {
-        return context.getResources().getBoolean(com.android.internal.R.bool.config_alt_ambient_display);
-    }
-
     // Check to see if device supports A/B (seamless) system updates
     public static boolean isABdevice(Context context) {
         return SystemProperties.getBoolean("ro.build.ab_update", false);
@@ -190,16 +185,6 @@ public class Utils {
             }
         } catch (RemoteException e) {
       }
-    }
-
-    // Method to take screenshots
-    public static void takeScreenshot(boolean full) {
-        IWindowManager wm = WindowManagerGlobal.getWindowManagerService();
-        try {
-            wm.sendCustomAction(new Intent(full? INTENT_SCREENSHOT : INTENT_REGION_SCREENSHOT));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
     }
 
     public static void sendKeycode(int keycode) {
